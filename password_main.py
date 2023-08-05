@@ -1,40 +1,59 @@
+"""sqlite3 -> built-in module in Python used for working with SQLite databases,
+hashlib -> which provides various hashing algorithms"""
 import sqlite3, hashlib
+"""Python library used for creating graphical user interfaces (GUIs)"""
 from tkinter import *
-# make popup simple modal dialogs to get a value from the user
+"""make popup simple modal dialogs to get a value from the user"""
 from tkinter import simpledialog
-# new partial object which when called will behave like func called with the positional arguments
+"""new partial object which when called will behave like func called with the positional arguments"""
 from functools import partial
-
+""" recovery key"""
 import uuid
+"""copy and paste clipboard functions"""
 import pyperclip
+"""encrypting data"""
 import base64
+"""os provides functions for interacting with the operating system, such as file operations and environment variables."""
 import os
+"""Various cryptographic hash functions"""
 from cryptography.hazmat.primitives import hashes
+"""PBKDF2 (Password-Based Key Derivation Function 2) is used for securely deriving cryptographic keys from passwords."""
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+""" It provides a default cryptographic backend for the library."""
 from cryptography.hazmat.backends import default_backend
+"""Fernet is a symmetric encryption algorithm that uses a shared secret key to encrypt and decrypt data."""
 from cryptography.fernet import Fernet
 
+"""1. The cryptography library in Python to derive a key using 
+2. The PBKDF2 (Password-Based Key Derivation Function 2) algorithm with 
+HMAC (Hash-based Message Authentication Code) using SHA256 as the underlying hash function.
+3. salt is a random value that is used to increase the security of the key derivation process."""
 backend = default_backend()
 salt = b'2444'
 
 kdf = PBKDF2HMAC(
     algorithm=hashes.SHA256(),
     length=32,
-    salt=salt,
+    #  Specifies the salt value to be used during key derivation.
+    salt=salt,  
     iterations=100000,
+    # Specifies the backend to be used for cryptographic operations.
     backend=backend
 )
 
 encryptionKey = 0
-
+"""This function takes two parameters: message, which is the data you want to encrypt (in bytes), 
+and key, which is the encryption key (also in bytes) used for the encryption process."""
 def encrypt(message: bytes, key: bytes) -> bytes:
     return Fernet(key).encrypt(message)
 
+"""Takes two parameters: message, which is the encrypted data you want to decrypt (in bytes), 
+and token, which is the decryption token (also in bytes) used to perform the decryption. """
 def decrypt(message: bytes, token: bytes) -> bytes:
     return Fernet(token).decrypt(message)
 
 
-#database code
+"""Database code"""
 with sqlite3.connect('password_menu.db') as db:
     cursor = db.cursor()
 
@@ -53,19 +72,21 @@ username TEXT NOT NULL,
 password TEXT NOT NULL);
 """)
 
-#Create PopUp primary use is to elicit binary decisions from the user, ask your name
+"""Create PopUp primary use is to elicit binary decisions from the user, ask your name"""
 def popUp(text):
     answer = simpledialog.askstring("input string", text)
 
     return answer
 
-#Initiate window
+"""Initiate window"""
 window = Tk()
 window.update()
 
 window.title("Password Vault")
 
 def hashPassword(input):
+    """ sha256 The function has a number of associated with hashing values,
+    which are especially useful given that normal strings cant easily be processed"""
     hash1 = hashlib.sha256(input)
     hash1 = hash1.hexdigest()
 
@@ -85,7 +106,8 @@ def firstTimeScreen():
     txt = Entry(window, width=20, show="*")
     txt.pack()
     txt.focus()
-# widget
+    
+    """Create widgetes"""
     lbl1 = Label(window, text="Re-enter password")
     lbl1.config(anchor=CENTER)
     lbl1.pack()
@@ -95,11 +117,13 @@ def firstTimeScreen():
 
     def savePassword():
         if txt.get() == txt1.get():
+            # delte all data
             sql = "DELETE FROM masterpassword WHERE id = 1"
 
             cursor.execute(sql)
 
             hashedPassword = hashPassword(txt.get().encode('utf-8'))
+            # recoverKey, random key generator
             key = str(uuid.uuid4().hex)
             recoveryKey = hashPassword(key.encode('utf-8'))
 
@@ -119,6 +143,7 @@ def firstTimeScreen():
     btn.pack(pady=5)
 
 def recoveryScreen(key):
+    # window.winfo_children pick all data from previous widget
     for widget in window.winfo_children():
         widget.destroy()
 
@@ -161,6 +186,7 @@ def resetScreen():
     lbl1.pack()
 
     def getRecoveryKey():
+        # encode it as a UTF-8 text file, and then save that data to a string called LIST_OF_COMMON_PASSWORDS.
         recoveryKeyCheck = hashPassword(str(txt.get()).encode('utf-8'))
         cursor.execute('SELECT * FROM masterpassword WHERE id = 1 AND recoveryKey = ?', [(recoveryKeyCheck)])
         return cursor.fetchall()
@@ -195,6 +221,7 @@ def loginScreen():
     lbl1.config(anchor=CENTER)
     lbl1.pack(side=TOP)
 
+    """ Function relate to handling password input and encryption keys"""
     def getMasterPassword():
         checkHashedPassword = hashPassword(txt.get().encode('utf-8'))
         global encryptionKey
